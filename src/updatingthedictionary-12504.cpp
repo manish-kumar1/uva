@@ -15,13 +15,29 @@ struct foo {
   }
 };
 
-void print(const set<string>& st) {
-  size_t sz = st.size() - 1;
-  set<string>::const_iterator it = st.begin();
-  while (sz-- > 0) {
-    cout << *it++ << ',';
-  }
-  cout << *it;
+template<typename iIter, typename OSS>
+void print(const char prefix, iIter s, iIter e,  OSS& o, const char postfix='\n') {
+    o << prefix;
+    copy(s, --e, ostream_iterator<string>(o, ","));
+    o << (*e) << '\n';
+}
+
+bool print(const char prefix, const set<string>& s) {
+    if (s.empty()) return false;
+    print(prefix, begin(s), end(s), cout);
+    return true;
+}
+
+template<typename Iter, typename Oter, typename Func>
+void mytransform(Iter s, Iter e, Oter o, Func f) {
+    const typename Iter::traits_type::int_type newLine = Iter::traits_type::to_int_type('\n');
+    for (;s != e; ++o, ++s) {
+        if((Iter::traits_type::eq_int_type(*s, newLine))) {
+            ++s;
+            break;
+        }
+        *o = f(*s);
+    }
 }
 
 int main() {
@@ -29,56 +45,41 @@ int main() {
   cin >> n >> ws;
 
   while (n--) {
-    string old, nw;
     map<string, string> mpo, mpn;
+    stringstream oss, nss;
 
-    getline(cin, old);
-    getline(cin, nw);
+    // istreambuf_iterator are much more faster than istream_iterator because of no sentry object
+    mytransform(istreambuf_iterator<char>(cin), istreambuf_iterator<char>(), ostreambuf_iterator<char>(oss), foo());
+    mytransform(istreambuf_iterator<char>(cin), istreambuf_iterator<char>(), ostreambuf_iterator<char>(nss), foo());
 
-    transform(old.begin(), old.end(), old.begin(), foo());    
-    transform(nw.begin(), nw.end(), nw.begin(), foo());    
-    
-    stringstream oss(old), nss(nw);
     string k, v;
-    while (oss >> k) {
-      oss >> v;
-      mpo[k] = v;
+    while (oss >> k >> v) {
+      mpo.insert(make_pair(k,v));
     }
 
     set<string> newKeys, removedKeys, modifiedKeys;
     
-    while (nss >> k) {
-      nss >> v;
-      mpn[k] = v;
-      map<string,string>::iterator it = mpo.find(k);
-      if (it == mpo.end()) newKeys.insert(k);
-      else if (it->second.compare(v)) modifiedKeys.insert(k);
+    while (nss >> k >> v) {
+        mpn.insert(make_pair(k,v));
+
+        map<string,string>::iterator it = mpo.find(k);
+        if (it == mpo.end()) newKeys.insert(k);
+        else if (it->second.compare(v)) modifiedKeys.insert(k);
     }
-   
-    for (map<string,string>::iterator it = mpo.begin(); it != mpo.end(); ++it) {
-      map<string,string>::iterator jt = mpn.find(it->first);
-      if (jt == mpn.end()) removedKeys.insert(it->first);
-    }
-    bool noChange = true;
-    if (!newKeys.empty()) {
-      noChange = false; 
-      cout << '+'; //copy(newKeys.begin(), newKeys.end()-1, ostream_iterator<string>(cout, ",")); cout << *(newKeys.end()-1) << endl;
-      print(newKeys);
-      cout << endl;
-    }
-    if (!removedKeys.empty()) {
-      noChange = false; 
-      cout << '-'; //copy(removedKeys.begin(), removedKeys.end()-1, ostream_iterator<string>(cout, ",")); cout << *(removedKeys.end()-1) << endl; 
-      print(removedKeys);
-      cout << endl;
-    }
-    if (!modifiedKeys.empty()) {
-      noChange = false; 
-      cout << '*'; //copy(modifiedKeys.begin(), modifiedKeys.end(), ostream_iterator<string>(cout, ",")); cout << *(modifiedKeys.end()-1) << endl;
-      print(modifiedKeys);
-      cout << endl;
-    }
-    if (noChange) cout << "No changes\n";
+
+    for_each(begin(mpo), end(mpo), 
+            [&](const pair<const string, string> &kv) {
+                if (mpn.find(kv.first) == mpn.cend()) removedKeys.insert(kv.first);
+            }
+    );
+
+
+    bool changed = false;
+    changed |= print('+', newKeys);
+    changed |= print('-', removedKeys);
+    changed |= print('*', modifiedKeys);
+
+    if (!changed) cout << "No changes\n";
     cout << endl;
   }
 }
