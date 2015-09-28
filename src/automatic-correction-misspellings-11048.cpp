@@ -93,14 +93,7 @@ void solve(const map<string,int>& dict, const string& query) {
     }
     else {
 //        copy(candidate.begin(), candidate.end(), ostream_iterator<string>(cout, ", ")); cout << endl;
-        set<string>::iterator ans = candidate.begin();
-        int best = numeric_limits<int>::max(), t;
-        for (set<string>::const_iterator it = candidate.begin() ;it != candidate.end(); ++it) {
-            if ((t = dict.at(*it)) < best) {
-                best = t;
-                ans = it;
-            }
-        }
+        auto ans = min_element(candidate.begin(), candidate.end(), [&](auto &a, auto &b){ return dict.at(a) < dict.at(b);});
         cout << query << " is a misspelling of " << (*ans) << endl;
     }
 }
