@@ -145,6 +145,7 @@ public:
         prune_zeros();
     }
 
+//#if 0
     big_unsigned& operator += (const big_unsigned& __rhs) {
         // TODO: check base is same ?
         if (_M_blk.size() < __rhs.size()) _M_blk.resize(__rhs.size(), traits_type::digit_type(0));
@@ -174,8 +175,8 @@ public:
         prune_zeros();
         return (*this);
     }
-
 #if 0
+
     big_unsigned& operator+= (const big_unsigned& __rhs) {
         if (_M_blk.size() < __rhs.size()) resize(__rhs.size(), traits_type::digit_type(0));
         digit_type _carry(0);
@@ -199,7 +200,6 @@ public:
         return (*this);
     }
 #endif
-
     big_unsigned& operator -= (const big_unsigned& __rhs) {
         if ((*this) < __rhs) {
             throw std::logic_error("negative");
@@ -234,12 +234,30 @@ public:
     }
 
     friend big_unsigned karatsuba(const big_unsigned& a, const big_unsigned& b); 
+    friend big_unsigned divide(big_unsigned& a, const big_unsigned& b); 
 
     big_unsigned& operator *= (const big_unsigned& __rhs) {
         return (*this) = karatsuba(*this, __rhs);
     }
 
+    big_unsigned& operator /= (const big_unsigned& __rhs) {
+        divide(*this, __rhs);
+        return (*this);
+    }
+
+    big_unsigned& operator ^= (const unsigned int __rhs) {
+        return (*this) = pow(*this, __rhs);
+    }
+
 protected:
+
+    big_unsigned pow(const big_unsigned& a, const unsigned int b) {
+        if (b == 0) return big_unsigned(1);
+        big_unsigned tmp = pow(a, b/2);
+        if (b % 2 == 0) return tmp * tmp;
+        return tmp * tmp * a;
+    }
+
     template<typename InputIter>
     InputIter init_from(InputIter __start, InputIter __end) {
         if (!_M_blk.empty()) _M_blk.clear();
@@ -267,6 +285,7 @@ public:
         std::transform(rbegin(), rend(), std::ostreambuf_iterator<char>(_ss), [](const digit_type _d) {
             return traits_type::to_char_type(_d);
         });
+        //std::copy(rbegin(), rend(), std::ostream_iterator<traits_type::digit_type>(_ss, ""));
         _ss >> _tmp;
         return _tmp;
     }
@@ -288,6 +307,7 @@ public:
     } 
     
     friend std::ostream& operator << (std::ostream& __oss, const big_unsigned& __rhs) {
+        //std::copy(__rhs.rbegin(), __rhs.rend(), std::ostream_iterator<digit_type>(__oss, ""));
         std::transform(__rhs.rbegin(), __rhs.rend(), std::ostreambuf_iterator<std::ostream::char_type>(__oss), [](const digit_type _d) {
             return traits_type::to_char_type(_d);
         });
@@ -362,6 +382,22 @@ big_unsigned karatsuba(const big_unsigned& a, const big_unsigned& b) {
     return z2.append(0, 2*M2) + ((z1 - t).append(0, M2)) + z0;
 }
 
+big_unsigned divide(big_unsigned& a, const big_unsigned& b) {
+    big_unsigned tmp;
+
+    const big_unsigned tens(10);
+    for( int i = a.size()-1; i >= 0; i-- )
+    {
+        tmp *= tens;
+        tmp += a._M_blk[i];
+        a._M_blk[i] = 0;
+        while( !(tmp < b) ) { tmp -= b; a._M_blk[i]++; }
+    }
+
+    a.prune_zeros();
+
+    return tmp; 
+}
 
 big_unsigned operator + (const big_unsigned& a, const big_unsigned& b) {
     big_unsigned tmp(a);
@@ -378,6 +414,18 @@ big_unsigned operator - (const big_unsigned& a, const big_unsigned& b) {
 big_unsigned operator * (const big_unsigned& a, const big_unsigned& b) {
     big_unsigned tmp(a);
     tmp *= b;
+    return tmp;
+}
+
+big_unsigned operator ^ (const big_unsigned& a, const unsigned int n) {
+    big_unsigned tmp(a);
+    tmp ^= n;
+    return tmp;
+}
+
+big_unsigned operator / (const big_unsigned& a, const big_unsigned& b) {
+    big_unsigned tmp(a);
+    tmp /= b;
     return tmp;
 }
 
