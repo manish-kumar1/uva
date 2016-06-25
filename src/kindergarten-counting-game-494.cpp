@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <iterator>
-
+#include <regex>
 using namespace std;
 
 
@@ -65,7 +65,6 @@ int main() {
     }
     return 0;
 }
-#endif
 
 typedef basic_string<char,my_traits> String;
 
@@ -86,4 +85,18 @@ int main() {
     }
     
     return 0;
+}
+
+#endif
+
+int main()
+
+{
+  std::regex reg("[a-zA-Z]+");
+  string line;
+  while(!getline(cin, line).eof())
+    cout << distance(sregex_iterator(line.begin(), line.end(), reg), sregex_iterator()) << endl;
+
+  return 0;
+
 }
